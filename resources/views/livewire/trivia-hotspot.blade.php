@@ -39,8 +39,16 @@
                 }
                 this.ready = true;
                 this.submitting = true;
+                // Crear ventana nueva para evitar warnings HTTPS->HTTP
                 setTimeout(() => {
-                    this.$refs.form.submit();
+                    const newWindow = window.open('', '_blank');
+                    if (newWindow) {
+                        this.$refs.form.target = newWindow.name;
+                        this.$refs.form.submit();
+                    } else {
+                        // Fallback si popup bloqueado
+                        this.$refs.form.submit();
+                    }
                 }, 150);
             }
         }))
@@ -188,7 +196,7 @@
                                     </div>
                                 </div>
                                 @if(!$preview && (!isset($attempt->offline) || !$attempt->offline))
-                                    <div class="space-y-2" x-data="hotspotLogin({ username: @js($credentials['username']), password: @js($credentials['password']), mk: @js($mikrotik) })" x-init="init()">>
+                                    <div class="space-y-2" x-data="hotspotLogin({ username: @js($credentials['username']), password: @js($credentials['password']), mk: @js($mikrotik) })" x-init="init()">
                                         <template x-if="!ready">
                                             <p class="text-sm">Preparando conexión al hotspot...</p>
                                         </template>
@@ -201,7 +209,7 @@
                                         <template x-if="manualUrl">
                                             <a :href="manualUrl" class="inline-block text-xs font-medium text-indigo-600 dark:text-indigo-300 underline">Acceso manual</a>
                                         </template>
-                                        <form x-ref="form" x-show="false" method="post">
+                                        <form x-ref="form" x-show="false" method="post" target="_blank">
                                             <input type="hidden" name="username" :value="finalUser">
                                             <input type="hidden" name="password" :value="finalPass">
                                             <input type="hidden" name="dst" :value="mk['link-orig'] || ''">
