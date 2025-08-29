@@ -11,7 +11,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        //
+        // Excluir rutas del hotspot de verificación CSRF
+        // MikroTik no puede enviar tokens CSRF en sus formularios
+        $middleware->validateCsrfTokens(except: [
+            'hotspot', // POST desde login.html de MikroTik
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
