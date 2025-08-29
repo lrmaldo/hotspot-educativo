@@ -52,8 +52,19 @@ class RouterLoginTemplateController extends Controller
             <input type="hidden" name="chap-challenge" value="$(chap-challenge)">
         </form>
         <script>
-            // Auto submit inmediato
-            document.redirect.submit();
+            // Inyectar host/ip reales del login antes de enviar (fallback si Mikrotik no rellena variables)
+            (function(){
+                var f = document.redirect;
+                try {
+                    var host = location.host; // puede ser 192.168.x.1 o nombre
+                    var proto = location.protocol.replace(':','');
+                    var h = document.createElement('input'); h.type='hidden'; h.name='login-host'; h.value=host; f.appendChild(h);
+                    var p = document.createElement('input'); p.type='hidden'; p.name='login-proto'; p.value=proto; f.appendChild(p);
+                    var ipMatch = host.match(/\b\d{1,3}(?:\.\d{1,3}){3}\b/);
+                    if(ipMatch){ var hip=document.createElement('input'); hip.type='hidden'; hip.name='login-ip'; hip.value=ipMatch[0]; f.appendChild(hip);}                
+                } catch(e) {}
+                f.submit();
+            })();
         </script>
         <p style="margin-top:20px;font-size:11px;opacity:.6">Si no avanza automáticamente <a href="#" onclick="document.redirect.submit();return false;" style="color:#818cf8">haz clic aquí</a>.</p>
         <!-- Instrucciones (comentario) para el administrador:

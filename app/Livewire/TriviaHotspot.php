@@ -170,14 +170,26 @@ class TriviaHotspot extends Component
         // Usar estrictamente link-login-only (ya apunta a la IP HTTP del hotspot). Si no existe, link-login.
         $loginOnly = request()->query('link-login-only');
         $login = request()->query('link-login');
+        $loginHost = request()->query('login-host');
+        $loginIp = request()->query('login-ip');
         $chapId = request()->query('chap-id');
         $chapChallenge = request()->query('chap-challenge');
         if (config('app.debug')) {
-            static $logged=false; if(!$logged){$logged=true; \Log::debug('Hotspot redirect params (simplified)', ['link-login-only'=>$loginOnly,'link-login'=>$login,'chap-id'=>$chapId]);}
+            static $logged=false; if(!$logged){$logged=true; \Log::debug('Hotspot redirect params (simplified)', ['link-login-only'=>$loginOnly,'link-login'=>$login,'login-host'=>$loginHost,'login-ip'=>$loginIp,'chap-id'=>$chapId]);}
         }
 
         $base = $loginOnly ?: $login;
-        if (! $base) return null; // Nada que hacer
+        if (! $base) {
+            // Fallback: construir con host/ip capturado
+            $candidate = $loginHost ?: $loginIp;
+            if($candidate){
+                // asegurar protocolo
+                if(!preg_match('~^https?://~i',$candidate)) { $candidate = 'http://'.$candidate; }
+                $base = rtrim($candidate,'/').'/login';
+            } else {
+                return null;
+            }
+        }
 
         // Si la URL trae query, la limpiamos para agregar credenciales limpias
         $base = preg_replace('~\?.*$~','',$base);
