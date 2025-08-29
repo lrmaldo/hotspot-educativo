@@ -167,41 +167,23 @@ class TriviaHotspot extends Component
         if (! $this->credentials) return null;
         if ($this->credentials['username'] === 'offline') return null;
 
-        // Preferir link-login-only (con IP). Si no, usar link-login. Ambos pueden traer ya protocolo.
+        // Usar estrictamente link-login-only (ya apunta a la IP HTTP del hotspot). Si no existe, link-login.
         $loginOnly = request()->query('link-login-only');
         $login = request()->query('link-login');
+        $chapId = request()->query('chap-id');
+        $chapChallenge = request()->query('chap-challenge');
+        if (config('app.debug')) {
+            static $logged=false; if(!$logged){$logged=true; \Log::debug('Hotspot redirect params (simplified)', ['link-login-only'=>$loginOnly,'link-login'=>$login,'chap-id'=>$chapId]);}
+        }
+
         $base = $loginOnly ?: $login;
+        if (! $base) return null; // Nada que hacer
 
-        if ($base) {
-            // A veces Mikrotik pasa 'http://login' (hostname genérico). Si host == 'login', intentar usar host real del router.
-            $parsed = @parse_url($base);
-            if ($parsed && isset($parsed['host']) && strtolower($parsed['host']) === 'login' && $this->routerDevice) {
-                $scheme = $parsed['scheme'] ?? 'http';
-                $port = $this->routerDevice->port ? ':'.$this->routerDevice->port : '';
-                $base = $scheme.'://'.$this->routerDevice->host.$port.'/login';
-            }
-            // Si falta scheme (ej: '/login' o '10.0.0.1/login')
-            if (!preg_match('~^https?://~i', $base)) {
-                if ($this->routerDevice) {
-                    $base = 'http://'.$this->routerDevice->host.($this->routerDevice->port ? ':'.$this->routerDevice->port : '').'/login';
-                } else {
-                    $base = 'http://'.trim($base,'/');
-                }
-            }
-        } elseif ($this->routerDevice) {
-            $base = 'http://'.$this->routerDevice->host.($this->routerDevice->port ? ':'.$this->routerDevice->port : '').'/login';
-        } else {
-            // Fallback imposible
-            return null;
-        }
+        // Si la URL trae query, la limpiamos para agregar credenciales limpias
+        $base = preg_replace('~\?.*$~','',$base);
 
-        // Limpiar query previa si existiera
-        $qPos = strpos($base,'?');
-        if ($qPos !== false) {
-            $base = substr($base,0,$qPos); // Reiniciamos para evitar parámetros extraños
-        }
-        $sep = str_contains($base,'?') ? '&' : '?'; // normalmente no tendrá '?'
-        return $base.$sep.'username='.urlencode($this->credentials['username']).'&password='.urlencode($this->credentials['password']);
+        // NOTA: Si existe chap-id se debería hacer POST con hash MD5 (fase siguiente). Mientras tanto usamos GET plano.
+        return $base.'?username='.urlencode($this->credentials['username']).'&password='.urlencode($this->credentials['password']);
     }
 
     public function render()

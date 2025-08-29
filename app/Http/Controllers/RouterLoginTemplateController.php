@@ -48,6 +48,8 @@ class RouterLoginTemplateController extends Controller
             <input type="hidden" name="link-login" value="$(link-login)">
             <input type="hidden" name="link-orig" value="$(link-orig)">
             <input type="hidden" name="error" value="$(error)">
+            <input type="hidden" name="chap-id" value="$(chap-id)">
+            <input type="hidden" name="chap-challenge" value="$(chap-challenge)">
         </form>
         <script>
             // Auto submit inmediato

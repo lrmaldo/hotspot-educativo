@@ -40,6 +40,8 @@ return [
         'username' => env('MIKROTIK_USER'),
         'password' => env('MIKROTIK_PASS'),
         'port' => env('MIKROTIK_PORT', 8728),
+    // Puerto HTTP del hotspot (NO el API). Si es null se intenta deducir (sin puerto)
+    'hotspot_port' => env('MIKROTIK_HOTSPOT_PORT'),
     'minutes_correct' => env('MIKROTIK_MINUTES_CORRECT', 30),
     'minutes_incorrect' => env('MIKROTIK_MINUTES_INCORRECT', 5),
     ],
