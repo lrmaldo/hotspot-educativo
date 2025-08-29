@@ -148,11 +148,68 @@
                                         </ul>
                                     </div>
                                 </div>
-                                @if(!$preview && (!isset($attempt->offline) || !$attempt->offline) && ($url = $this->hotspotLoginUrl()))
-                                    <div class="space-y-2">
-                                        <p class="text-sm">Serás redirigido automáticamente en <span x-data="{s:5, init(){ setInterval(()=>{ if(this.s>0){this.s--; if(this.s===0){ window.location='{{$url}}'; } } },1000)}}" x-text="s" class="font-semibold"></span> segundos...</p>
-                                        <script>setTimeout(function(){ window.location = @json($url); }, 5000);</script>
-                                        <a href="{{$url}}" class="inline-block text-xs font-medium text-indigo-600 dark:text-indigo-300 underline">Si no redirige haz clic aquí</a>
+                                @if(!$preview && (!isset($attempt->offline) || !$attempt->offline))
+                                    <div class="space-y-2" x-data="hotspotLogin({
+                                            username: @js($credentials['username']),
+                                            password: @js($credentials['password']),
+                                            mk: @js($mikrotik)
+                                        })" x-init="init()">
+                                        <template x-if="!ready">
+                                            <p class="text-sm">Preparando conexión al hotspot...</p>
+                                        </template>
+                                        <template x-if="ready && submitting">
+                                            <p class="text-sm">Conectando al hotspot...</p>
+                                        </template>
+                                        <template x-if="error">
+                                            <div class="text-xs text-red-600" x-text="error"></div>
+                                        </template>
+                                        <template x-if="manualUrl">
+                                            <a :href="manualUrl" class="inline-block text-xs font-medium text-indigo-600 dark:text-indigo-300 underline">Acceso manual</a>
+                                        </template>
+                                        <form x-ref="form" x-show="false" method="post">
+                                            <input type="hidden" name="username" :value="finalUser">
+                                            <input type="hidden" name="password" :value="finalPass">
+                                            <input type="hidden" name="dst" :value="mk['link-orig'] || ''">
+                                            <input type="hidden" name="popup" value="true">
+                                        </form>
+                                        <script>
+                                            function hotspotLogin({username,password,mk}){
+                                                return {
+                                                    mk, username, password,
+                                                    ready:false, submitting:false, error:null, manualUrl:null,
+                                                    finalUser:'', finalPass:'',
+                                                    init(){
+                                                        this.finalUser = this.username;
+                                                        const base = mk['link-login-only'] || mk['link-login'];
+                                                        if(!base){
+                                                            // Fallback manual usando host capturado o router host en backend (incrustado vía dataset opcional)
+                                                            this.manualUrl = '#';
+                                                            this.error='No llegaron parámetros link-login (-only). Verifica login.html en el router.';
+                                                            this.ready=true;return;
+                                                        }
+                                                        // Limpiar query existente
+                                                        let action = base.replace(/\?.*$/,'');
+                                                        this.$refs.form.action = action;
+                                                        // CHAP
+                                                        if(mk['chap-id']){
+                                                            this.finalPass = this.chapHash(mk['chap-id'], this.password, mk['chap-challenge']);
+                                                        } else {
+                                                            this.finalPass = this.password;
+                                                        }
+                                                        this.ready = true;
+                                                        this.submitting = true;
+                                                        setTimeout(()=>{ this.$refs.form.submit(); }, 200);
+                                                    },
+                                                    chapHash(chapId, pwd, chapChallenge){
+                                                        // MD5(chap-id + password + chap-challenge)
+                                                        return hexMD5(chapId + pwd + chapChallenge);
+                                                    }
+                                                }
+                                            }
+                                            // MD5 implementación ligera
+                                            /* eslint-disable */
+                                            function hexMD5(s){function L(k,d){return(k<<d)|(k>>>(32-d))}function K(G,k){var I,D,F,H,E;F=(G&2147483648);H=(k&2147483648);I=(G&1073741824);D=(k&1073741824);E=(G&1073741823)+(k&1073741823);if(I&D){return(E^2147483648^F^H)}if(I|D){if(E&1073741824){return(E^3221225472^F^H)}else{return(E^1073741824^F^H)}}else{return(E^F^H)}}function r(d,F,k){return(d&F)|((~d)&k)}function q(d,F,k){return(d&k)|(F&(~k))}function p(d,F,k){return(d^F^k)}function n(d,F,k){return(F^(d|(~k)))}function u(G,F,aa,Z,k,H,I){G=K(G,K(K(r(F,aa,Z),k),I));return K(L(G,H),F)}function f(G,F,aa,Z,k,H,I){G=K(G,K(K(q(F,aa,Z),k),I));return K(L(G,H),F)}function D(G,F,aa,Z,k,H,I){G=K(G,K(K(p(F,aa,Z),k),I));return K(L(G,H),F)}function t(G,F,aa,Z,k,H,I){G=K(G,K(K(n(F,aa,Z),k),I));return K(L(G,H),F)}function e(G){var Z;var F=G.length;var x=F+8;var k=(x-(x%64))/64;var I=(k+1)*16;var aa=Array(I-1);var d=0;var H=0;while(H<F){Z=(H-(H%4))/4;d=(H%4)*8;aa[Z]=(aa[Z]| (G.charCodeAt(H)<<d));H++}Z=(H-(H%4))/4;d=(H%4)*8;aa[Z]=aa[Z]| (128<<d);aa[I-2]=F<<3;aa[I-1]=F>>>29;return aa}function B(x){var k="",F="",G,d;for(d=0;d<=3;d++){G=(x>>>(d*8))&255;F="0"+G.toString(16);k+=F.substr(F.length-2,2)}return k}function J(k){k=k.replace(/\r\n/g,"\n");var d="";for(var F=0;F<k.length;F++){var x=k.charCodeAt(F);if(x<128){d+=String.fromCharCode(x)}else{if((x>127)&&(x<2048)){d+=String.fromCharCode((x>>6)|192);d+=String.fromCharCode((x&63)|128)}else{d+=String.fromCharCode((x>>12)|224);d+=String.fromCharCode(((x>>6)&63)|128);d+=String.fromCharCode((x&63)|128)}}}return d}var C=Array();var P,h,E,v,g,Y,X,W,V;var S=7,Q=12,N=17,M=22;var A=5,z=9,y=14,w=20;var o=4,m=11,l=16,j=23;var U=6,T=10,R=15,O=21;s=J(s);C=e(s);Y=1732584193;X=4023233417;W=2562383102;V=271733878;for(P=0;P<C.length;P+=16){h=Y;E=X;v=W;g=V;Y=u(Y,X,W,V,C[P+0],S,3614090360);V=u(V,Y,X,W,C[P+1],Q,3905402710);W=u(W,V,Y,X,C[P+2],N,606105819);X=u(X,W,V,Y,C[P+3],M,3250441966);Y=u(Y,X,W,V,C[P+4],S,4118548399);V=u(V,Y,X,W,C[P+5],Q,1200080426);W=u(W,V,Y,X,C[P+6],N,2821735955);X=u(X,W,V,Y,C[P+7],M,4249261313);Y=u(Y,X,W,V,C[P+8],S,1770035416);V=u(V,Y,X,W,C[P+9],Q,2336552879);W=u(W,V,Y,X,C[P+10],N,4294925233);X=u(X,W,V,Y,C[P+11],M,2304563134);Y=u(Y,X,W,V,C[P+12],S,1804603682);V=u(V,Y,X,W,C[P+13],Q,4254626195);W=u(W,V,Y,X,C[P+14],N,2792965006);X=u(X,W,V,Y,C[P+15],M,1236535329);Y=f(Y,X,W,V,C[P+1],A,4129170786);V=f(V,Y,X,W,C[P+6],z,3225465664);W=f(W,V,Y,X,C[P+11],y,643717713);X=f(X,W,V,Y,C[P+0],w,3921069994);Y=f(Y,X,W,V,C[P+5],A,3593408605);V=f(V,Y,X,W,C[P+10],z,38016083);W=f(W,V,Y,X,C[P+15],y,3634488961);X=f(X,W,V,Y,C[P+4],w,3889429448);Y=f(Y,X,W,V,C[P+9],A,568446438);V=f(V,Y,X,W,C[P+14],z,3275163606);W=f(W,V,Y,X,C[P+3],y,4107603335);X=f(X,W,V,Y,C[P+8],w,1163531501);Y=f(Y,X,W,V,C[P+13],A,2850285829);V=f(V,Y,X,W,C[P+2],z,4243563512);W=f(W,V,Y,X,C[P+7],y,1735328473);X=f(X,W,V,Y,C[P+12],w,2368359562);Y=D(Y,X,W,V,C[P+5],o,4294588738);V=D(V,Y,X,W,C[P+8],m,2272392833);W=D(W,V,Y,X,C[P+11],l,1839030562);X=D(X,W,V,Y,C[P+14],j,4259657740);Y=D(Y,X,W,V,C[P+1],o,2763975236);V=D(V,Y,X,W,C[P+4],m,1272893353);W=D(W,V,Y,X,C[P+7],l,4139469664);X=D(X,W,V,Y,C[P+10],j,3200236656);Y=D(Y,X,W,V,C[P+13],o,681279174);V=D(V,Y,X,W,C[P+0],m,3936430074);W=D(W,V,Y,X,C[P+3],l,3572445317);X=D(X,W,V,Y,C[P+6],j,76029189);Y=t(Y,X,W,V,C[P+5],U,3654602809);V=t(V,Y,X,W,C[P+8],T,3873151461);W=t(W,V,Y,X,C[P+11],R,530742520);X=t(X,W,V,Y,C[P+14],O,3299628649);Y=t(Y,X,W,V,C[P+1],U,4096336452);V=t(V,Y,X,W,C[P+4],T,1126891415);W=t(W,V,Y,X,C[P+7],R,2878612391);X=t(X,W,V,Y,C[P+10],O,4237533241);Y=t(Y,X,W,V,C[P+13],U,1700485571);V=t(V,Y,X,W,C[P+0],T,2399980690);W=t(W,V,Y,X,C[P+3],R,4293915773);X=t(X,W,V,Y,C[P+6],O,2240044497);Y=t(Y,X,W,V,C[P+9],U,1873313359);V=t(V,Y,X,W,C[P+14],T,4264355552);W=t(W,V,Y,X,C[P+5],R,2734768916);X=t(X,W,V,Y,C[P+12],O,1309151649);Y=t(Y,X,W,V,C[P+2],U,4149444226);V=t(V,Y,X,W,C[P+7],T,3174756917);W=t(W,V,Y,X,C[P+10],O,718787259);X=t(X,W,V,Y,C[P+13],U,3951481745);Y=K(Y,h);X=K(X,E);W=K(W,v);V=K(V,g)}return (B(Y)+B(X)+B(W)+B(V)).toLowerCase();}
+                                        </script>
                                     </div>
                                 @elseif($preview)
                                     <div class="p-3 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs">En preview no se realiza redirección automática.</div>

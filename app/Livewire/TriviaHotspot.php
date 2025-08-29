@@ -23,11 +23,16 @@ class TriviaHotspot extends Component
     protected ?int $routerId = null; // id router validado
     public ?RouterDevice $routerDevice = null; // instancia elegida (public para la vista)
     public ?string $connectionError = null; // detalle cuando cae a offline
+    public array $mikrotik = []; // parámetros capturados del login (link-login-only, chap-id, etc.)
 
     public function mount(): void
     {
     $this->preview = (bool) request()->query('preview');
     $this->resolveRouterFromRequest();
+        // Capturar parámetros Mikrotik para posterior auto-login CHAP
+        $this->mikrotik = request()->only([
+            'link-login-only','link-login','link-orig','chap-id','chap-challenge','username','error','mac','ip','login-host','login-ip','popup'
+        ]);
         $this->trivia = Trivia::getToday();
         if (!$this->trivia && $this->preview) {
             // Crear instancia temporal sin guardar
@@ -174,6 +179,8 @@ class TriviaHotspot extends Component
         $loginIp = request()->query('login-ip');
         $chapId = request()->query('chap-id');
         $chapChallenge = request()->query('chap-challenge');
+    // Si tenemos chap-id preferimos el nuevo flujo de formulario, retornamos null para que la vista use el auto-post.
+    if ($chapId) return null;
         if (config('app.debug')) {
             static $logged=false; if(!$logged){
                 $logged=true;
