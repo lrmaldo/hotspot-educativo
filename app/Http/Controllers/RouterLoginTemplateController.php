@@ -43,6 +43,8 @@ class RouterLoginTemplateController extends Controller
             <input type="hidden" name="mac" value="$(mac)">
             <input type="hidden" name="ip" value="$(ip)">
             <input type="hidden" name="username" value="$(username)">
+            <!-- link-login-only incluye IP y evita el hostname 'login' que puede no resolverse en algunos clientes -->
+            <input type="hidden" name="link-login-only" value="$(link-login-only)">
             <input type="hidden" name="link-login" value="$(link-login)">
             <input type="hidden" name="link-orig" value="$(link-orig)">
             <input type="hidden" name="error" value="$(error)">
