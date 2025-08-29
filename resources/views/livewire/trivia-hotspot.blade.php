@@ -159,7 +159,9 @@
                                         <div class="p-4 rounded-xl bg-gradient-to-r from-indigo-50 to-sky-50 dark:from-indigo-900/20 dark:to-sky-900/20 border border-indigo-200 dark:border-indigo-700">
                                             <h3 class="font-semibold text-indigo-900 dark:text-indigo-100 mb-3">🌐 Conectar al Hotspot</h3>
                                             <p class="text-sm text-indigo-700 dark:text-indigo-300 mb-4">Haz clic en "Conectar" para acceder a Internet con tus credenciales:</p>
-                                            <form id="hotspot-form" method="post" target="_blank" class="space-y-3">
+
+                                            <form id="hotspot-form" action="{{ route('hotspot.connect') }}" method="post" target="hotspot_window" class="space-y-3">
+                                                @csrf
                                                 <div class="grid grid-cols-2 gap-3">
                                                     <div>
                                                         <label class="block text-xs font-medium text-indigo-700 dark:text-indigo-300 mb-1">Usuario</label>
@@ -167,12 +169,13 @@
                                                     </div>
                                                     <div>
                                                         <label class="block text-xs font-medium text-indigo-700 dark:text-indigo-300 mb-1">Contraseña</label>
-                                                        <input type="password" name="password" value="{{$credentials['password']}}" readonly class="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-800 border border-gray-300 dark:border-zinc-600 rounded-lg font-mono">
+                                                        <input type="password" name="password" id="hotspot-password" value="{{$credentials['password']}}" readonly class="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-800 border border-gray-300 dark:border-zinc-600 rounded-lg font-mono">
                                                     </div>
                                                 </div>
                                                 <input type="hidden" name="dst" value="{{$mikrotik['link-orig'] ?? ''}}">
                                                 <input type="hidden" name="popup" value="true">
-                                                <button type="button" onclick="connectToHotspot()" class="w-full px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-sky-600 text-white font-semibold rounded-lg hover:from-indigo-500 hover:to-sky-500 transition-all duration-200 flex items-center justify-center gap-2">
+
+                                                <button type="submit" onclick="return handleHotspotSubmit()" class="w-full px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-sky-600 text-white font-semibold rounded-lg hover:from-indigo-500 hover:to-sky-500 transition-all duration-200 flex items-center justify-center gap-2">
                                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                                                     </svg>
@@ -184,47 +187,40 @@
                                             <svg class="w-4 h-4 animate-pulse" fill="currentColor" viewBox="0 0 24 24">
                                                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                                             </svg>
-                                            Conectando... se abrirá una nueva ventana
+                                            Conectando... se abrió una nueva ventana
                                         </div>
                                     </div>
+
                                     <script>
-                                    function connectToHotspot() {
-                                        const form = document.getElementById('hotspot-form');
-                                        const status = document.getElementById('connecting-status');
-                                        const mk = @json($mikrotik);
+                                    function handleHotspotSubmit() {
+                                        try {
+                                            const form = document.getElementById('hotspot-form');
+                                            const status = document.getElementById('connecting-status');
+                                            const mk = @json($mikrotik);
 
-                                        // Mostrar estado de conexión
-                                        status.style.display = 'flex';
+                                            // Mostrar estado de conexión
+                                            status.style.display = 'flex';
 
-                                        // Configurar acción del formulario hacia nuestra ruta Laravel
-                                        form.action = '{{ route("hotspot.connect") }}';
+                                            // Si hay CHAP, calcular hash MD5
+                                            if (mk && mk['chap-id'] && mk['chap-challenge']) {
+                                                const passwordField = document.getElementById('hotspot-password');
+                                                const originalPassword = '{{$credentials['password']}}';
+                                                const chapPassword = mk['chap-id'] + originalPassword + mk['chap-challenge'];
+                                                passwordField.value = hexMD5(chapPassword);
+                                            }
 
-                                        // Verificar que tenemos datos de MikroTik
-                                        if (!mk || (!mk['link-login-only'] && !mk['link-login'])) {
-                                            alert('Error: No se encontró configuración del hotspot de MikroTik');
-                                            status.style.display = 'none';
-                                            return;
+                                            // Abrir ventana para el envío
+                                            window.open('', 'hotspot_window', 'width=800,height=600,scrollbars=yes');
+
+                                            return true; // Permitir que el formulario se envíe
+
+                                        } catch (error) {
+                                            console.error('Error al conectar:', error);
+                                            alert('Error al procesar la conexión. Intenta nuevamente.');
+                                            const status = document.getElementById('connecting-status');
+                                            if (status) status.style.display = 'none';
+                                            return false; // Evitar que el formulario se envíe si hay error
                                         }
-
-                                        // Si hay CHAP, calcular hash MD5
-                                        if (mk['chap-id']) {
-                                            const password = mk['chap-id'] + '{{$credentials['password']}}' + mk['chap-challenge'];
-                                            form.elements['password'].value = hexMD5(password);
-                                        }
-
-                                        // Agregar token CSRF
-                                        const csrfInput = document.createElement('input');
-                                        csrfInput.type = 'hidden';
-                                        csrfInput.name = '_token';
-                                        csrfInput.value = '{{ csrf_token() }}';
-                                        form.appendChild(csrfInput);
-
-                                        // Abrir en nueva ventana y enviar
-                                        const newWindow = window.open('', '_blank', 'width=800,height=600');
-                                        if (newWindow) {
-                                            form.target = newWindow.name;
-                                        }
-                                        form.submit();
                                     }
                                     </script>
                                 @elseif($preview)
