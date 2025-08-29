@@ -175,7 +175,18 @@ class TriviaHotspot extends Component
         $chapId = request()->query('chap-id');
         $chapChallenge = request()->query('chap-challenge');
         if (config('app.debug')) {
-            static $logged=false; if(!$logged){$logged=true; \Log::debug('Hotspot redirect params (simplified)', ['link-login-only'=>$loginOnly,'link-login'=>$login,'login-host'=>$loginHost,'login-ip'=>$loginIp,'chap-id'=>$chapId]);}
+            static $logged=false; if(!$logged){
+                $logged=true;
+                \Log::debug('Hotspot full query', request()->query());
+                \Log::debug('Hotspot redirect params (simplified)', [
+                    'link-login-only'=>$loginOnly,
+                    'link-login'=>$login,
+                    'login-host'=>$loginHost,
+                    'login-ip'=>$loginIp,
+                    'chap-id'=>$chapId,
+                    'router_host'=>$this->routerDevice?->host,
+                ]);
+            }
         }
 
         $base = $loginOnly ?: $login;
@@ -186,6 +197,9 @@ class TriviaHotspot extends Component
                 // asegurar protocolo
                 if(!preg_match('~^https?://~i',$candidate)) { $candidate = 'http://'.$candidate; }
                 $base = rtrim($candidate,'/').'/login';
+            } elseif ($this->routerDevice) {
+                // Último fallback: host del router (sin puerto API)
+                $base = 'http://'.$this->routerDevice->host.'/login';
             } else {
                 return null;
             }

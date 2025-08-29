@@ -51,6 +51,15 @@ class RouterLoginTemplateController extends Controller
             <input type="hidden" name="chap-id" value="$(chap-id)">
             <input type="hidden" name="chap-challenge" value="$(chap-challenge)">
         </form>
+    <!-- DEBUG Placeholders (ver código fuente en router tras subir archivo). Si ves literalmente $(link-login-only) NO se está procesando:
+    link-login-only=$(link-login-only)
+    link-login=$(link-login)
+    ip=$(ip)
+    mac=$(mac)
+    username=$(username)
+    chap-id=$(chap-id)
+    chap-challenge=$(chap-challenge)
+    -->
         <script>
             // Inyectar host/ip reales del login antes de enviar (fallback si Mikrotik no rellena variables)
             (function(){
@@ -61,7 +70,7 @@ class RouterLoginTemplateController extends Controller
                     var h = document.createElement('input'); h.type='hidden'; h.name='login-host'; h.value=host; f.appendChild(h);
                     var p = document.createElement('input'); p.type='hidden'; p.name='login-proto'; p.value=proto; f.appendChild(p);
                     var ipMatch = host.match(/\b\d{1,3}(?:\.\d{1,3}){3}\b/);
-                    if(ipMatch){ var hip=document.createElement('input'); hip.type='hidden'; hip.name='login-ip'; hip.value=ipMatch[0]; f.appendChild(hip);}                
+                    if(ipMatch){ var hip=document.createElement('input'); hip.type='hidden'; hip.name='login-ip'; hip.value=ipMatch[0]; f.appendChild(hip);}
                 } catch(e) {}
                 f.submit();
             })();
