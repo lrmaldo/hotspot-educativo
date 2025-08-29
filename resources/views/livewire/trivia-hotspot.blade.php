@@ -160,27 +160,32 @@
                                             <h3 class="font-semibold text-indigo-900 dark:text-indigo-100 mb-3">🌐 Conectar al Hotspot</h3>
                                             <p class="text-sm text-indigo-700 dark:text-indigo-300 mb-4">Haz clic en "Conectar" para acceder a Internet con tus credenciales:</p>
 
-                                            <form id="hotspot-form" action="{{ route('hotspot.connect') }}" method="post" target="hotspot_window" class="space-y-3">
-                                                @csrf
+                                            <form name="login" action="{{$mikrotik['link-login-only'] ?? $mikrotik['link-login'] ?? '#'}}" method="post" onSubmit="return doLogin()"  class="space-y-3">
+                                                <input type="hidden" name="dst" value="{{$mikrotik['link-orig'] ?? ''}}" />
+                                                <input type="hidden" name="popup" value="true" />
+
                                                 <div class="grid grid-cols-2 gap-3">
                                                     <div>
                                                         <label class="block text-xs font-medium text-indigo-700 dark:text-indigo-300 mb-1">Usuario</label>
-                                                        <input type="text" name="username" value="{{$credentials['username']}}" readonly class="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-800 border border-gray-300 dark:border-zinc-600 rounded-lg font-mono">
+                                                        <input type="text" name="username" id="username" value="{{$credentials['username']}}" readonly class="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-800 border border-gray-300 dark:border-zinc-600 rounded-lg font-mono">
                                                     </div>
                                                     <div>
                                                         <label class="block text-xs font-medium text-indigo-700 dark:text-indigo-300 mb-1">Contraseña</label>
-                                                        <input type="password" name="password" id="hotspot-password" value="{{$credentials['password']}}" readonly class="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-800 border border-gray-300 dark:border-zinc-600 rounded-lg font-mono">
+                                                        <input type="password" name="password" id="password" value="{{$credentials['password']}}" readonly class="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-800 border border-gray-300 dark:border-zinc-600 rounded-lg font-mono">
                                                     </div>
                                                 </div>
-                                                <input type="hidden" name="dst" value="{{$mikrotik['link-orig'] ?? ''}}">
-                                                <input type="hidden" name="popup" value="true">
 
-                                                <button type="submit" onclick="return handleHotspotSubmit()" class="w-full px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-sky-600 text-white font-semibold rounded-lg hover:from-indigo-500 hover:to-sky-500 transition-all duration-200 flex items-center justify-center gap-2">
+                                                <button type="submit" class="w-full px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-sky-600 text-white font-semibold rounded-lg hover:from-indigo-500 hover:to-sky-500 transition-all duration-200 flex items-center justify-center gap-2">
                                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                                                     </svg>
                                                     Conectar al Internet
                                                 </button>
+
+                                                <!-- Mostrar errores si los hay -->
+                                                @if(!empty($mikrotik['error']))
+                                                    <div class="text-red-600 text-xs font-medium mt-2">{{$mikrotik['error']}}</div>
+                                                @endif
                                             </form>
                                         </div>
                                         <div id="connecting-status" style="display:none" class="text-sm text-indigo-600 dark:text-indigo-400 flex items-center gap-2">
@@ -192,25 +197,27 @@
                                     </div>
 
                                     <script>
-                                    function handleHotspotSubmit() {
+                                    function doLogin() {
                                         try {
-                                            const form = document.getElementById('hotspot-form');
                                             const status = document.getElementById('connecting-status');
                                             const mk = @json($mikrotik);
 
+                                            // Verificar que tenemos URL de login
+                                            if (!mk || (!mk['link-login-only'] && !mk['link-login'])) {
+                                                alert('Error: No se encontró configuración del hotspot de MikroTik');
+                                                return false;
+                                            }
+
                                             // Mostrar estado de conexión
-                                            status.style.display = 'flex';
+                                            if (status) status.style.display = 'flex';
 
                                             // Si hay CHAP, calcular hash MD5
-                                            if (mk && mk['chap-id'] && mk['chap-challenge']) {
-                                                const passwordField = document.getElementById('hotspot-password');
+                                            if (mk['chap-id'] && mk['chap-challenge']) {
+                                                const passwordField = document.getElementById('password');
                                                 const originalPassword = '{{$credentials['password']}}';
                                                 const chapPassword = mk['chap-id'] + originalPassword + mk['chap-challenge'];
                                                 passwordField.value = hexMD5(chapPassword);
                                             }
-
-                                            // Abrir ventana para el envío
-                                            window.open('', 'hotspot_window', 'width=800,height=600,scrollbars=yes');
 
                                             return true; // Permitir que el formulario se envíe
 
