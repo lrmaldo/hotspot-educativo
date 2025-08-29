@@ -38,18 +38,7 @@
                     this.finalPass = this.password;
                 }
                 this.ready = true;
-                this.submitting = true;
-                // Crear ventana nueva para evitar warnings HTTPS->HTTP
-                setTimeout(() => {
-                    const newWindow = window.open('', '_blank');
-                    if (newWindow) {
-                        this.$refs.form.target = newWindow.name;
-                        this.$refs.form.submit();
-                    } else {
-                        // Fallback si popup bloqueado
-                        this.$refs.form.submit();
-                    }
-                }, 150);
+                // NO auto-submit, dejar que el usuario haga clic
             }
         }))
     })
@@ -196,26 +185,66 @@
                                     </div>
                                 </div>
                                 @if(!$preview && (!isset($attempt->offline) || !$attempt->offline))
-                                    <div class="space-y-2" x-data="hotspotLogin({ username: @js($credentials['username']), password: @js($credentials['password']), mk: @js($mikrotik) })" x-init="init()">
+                                    <div class="space-y-4" x-data="hotspotLogin({ username: @js($credentials['username']), password: @js($credentials['password']), mk: @js($mikrotik) })" x-init="init()">
                                         <template x-if="!ready">
-                                            <p class="text-sm">Preparando conexión al hotspot...</p>
+                                            <div class="text-sm flex items-center gap-2">
+                                                <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                                </svg>
+                                                Preparando conexión al hotspot...
+                                            </div>
+                                        </template>
+                                        <template x-if="ready && !submitting">
+                                            <div class="p-4 rounded-xl bg-gradient-to-r from-indigo-50 to-sky-50 dark:from-indigo-900/20 dark:to-sky-900/20 border border-indigo-200 dark:border-indigo-700">
+                                                <h3 class="font-semibold text-indigo-900 dark:text-indigo-100 mb-3">🌐 Conectar al Hotspot</h3>
+                                                <p class="text-sm text-indigo-700 dark:text-indigo-300 mb-4">Haz clic en "Conectar" para acceder a Internet con tus credenciales:</p>
+                                                <form x-ref="form" method="post" class="space-y-3">
+                                                    <div class="grid grid-cols-2 gap-3">
+                                                        <div>
+                                                            <label class="block text-xs font-medium text-indigo-700 dark:text-indigo-300 mb-1">Usuario</label>
+                                                            <input type="text" name="username" :value="finalUser" readonly class="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-800 border border-gray-300 dark:border-zinc-600 rounded-lg font-mono">
+                                                        </div>
+                                                        <div>
+                                                            <label class="block text-xs font-medium text-indigo-700 dark:text-indigo-300 mb-1">Contraseña</label>
+                                                            <input type="password" name="password" :value="finalPass" readonly class="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-800 border border-gray-300 dark:border-zinc-600 rounded-lg font-mono">
+                                                        </div>
+                                                    </div>
+                                                    <input type="hidden" name="dst" :value="mk['link-orig'] || ''">
+                                                    <input type="hidden" name="popup" value="true">
+                                                    <button type="button" @click="submitting=true; $refs.form.submit();" class="w-full px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-sky-600 text-white font-semibold rounded-lg hover:from-indigo-500 hover:to-sky-500 transition-all duration-200 flex items-center justify-center gap-2">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                                        </svg>
+                                                        Conectar al Internet
+                                                    </button>
+                                                </form>
+                                            </div>
                                         </template>
                                         <template x-if="ready && submitting">
-                                            <p class="text-sm">Conectando al hotspot...</p>
+                                            <div class="text-sm text-indigo-600 dark:text-indigo-400 flex items-center gap-2">
+                                                <svg class="w-4 h-4 animate-pulse" fill="currentColor" viewBox="0 0 24 24">
+                                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                                </svg>
+                                                Conectando... se abrirá una nueva ventana
+                                            </div>
                                         </template>
                                         <template x-if="error">
-                                            <div class="text-xs text-red-600" x-text="error"></div>
+                                            <div class="p-3 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800">
+                                                <p class="text-sm text-red-700 dark:text-red-300 font-medium">Error de conexión</p>
+                                                <p class="text-xs text-red-600 dark:text-red-400 mt-1" x-text="error"></p>
+                                            </div>
                                         </template>
                                         <template x-if="manualUrl">
-                                            <a :href="manualUrl" class="inline-block text-xs font-medium text-indigo-600 dark:text-indigo-300 underline">Acceso manual</a>
+                                            <div class="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800">
+                                                <p class="text-sm text-amber-700 dark:text-amber-300 font-medium mb-2">Acceso manual requerido</p>
+                                                <a :href="manualUrl" target="_blank" class="inline-flex items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-400 underline">
+                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                                    </svg>
+                                                    Abrir portal hotspot
+                                                </a>
+                                            </div>
                                         </template>
-                                        <form x-ref="form" x-show="false" method="post" target="_blank">
-                                            <input type="hidden" name="username" :value="finalUser">
-                                            <input type="hidden" name="password" :value="finalPass">
-                                            <input type="hidden" name="dst" :value="mk['link-orig'] || ''">
-                                            <input type="hidden" name="popup" value="true">
-                                        </form>
-                                        <!-- hotspot auto-login script global definido arriba -->
                                     </div>
                                 @elseif($preview)
                                     <div class="p-3 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs">En preview no se realiza redirección automática.</div>
