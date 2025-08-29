@@ -27,12 +27,24 @@ class TriviaHotspot extends Component
 
     public function mount(): void
     {
-    $this->preview = (bool) request()->query('preview');
-    $this->resolveRouterFromRequest();
-        // Capturar parámetros Mikrotik para posterior auto-login CHAP
+        $this->preview = (bool) request()->query('preview');
+        $this->resolveRouterFromRequest();
+
+        // Capturar parámetros Mikrotik desde request o sesión
         $this->mikrotik = request()->only([
             'link-login-only','link-login','link-orig','chap-id','chap-challenge','username','error','mac','ip','login-host','login-ip','popup'
         ]);
+
+        // Si no hay parámetros en request, intentar obtenerlos de la sesión
+        if (empty(array_filter($this->mikrotik))) {
+            $this->mikrotik = session('mikrotik_params', []);
+        }
+
+        // Guardar los parámetros de MikroTik en la sesión para uso posterior
+        if (!empty(array_filter($this->mikrotik))) {
+            session(['mikrotik_params' => $this->mikrotik]);
+        }
+
         $this->trivia = Trivia::getToday();
         if (!$this->trivia && $this->preview) {
             // Crear instancia temporal sin guardar
@@ -66,8 +78,10 @@ class TriviaHotspot extends Component
 
     protected function resolveRouterFromRequest(): void
     {
-        $id = request()->integer('router');
-        $token = request()->query('rtoken');
+        // Intentar obtener de request primero, luego de sesión
+        $id = request()->integer('router') ?: session('mikrotik_params.router');
+        $token = request()->query('rtoken') ?: session('mikrotik_params.rtoken');
+
         if ($id && $token && hash_equals(hash_hmac('sha256', 'router:'.$id, config('app.key')), $token)) {
             $candidate = RouterDevice::enabled()->find($id);
             if ($candidate) {

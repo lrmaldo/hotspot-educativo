@@ -39,7 +39,7 @@ class RouterLoginTemplateController extends Controller
         <div class="spinner"></div>
         <noscript><p>Activa JavaScript y vuelve a intentarlo.</p></noscript>
         <!-- Formulario oculto que envía parámetros del hotspot -->
-        <form name="redirect" action="{$action}" method="get">
+        <form name="redirect" action="{$action}" method="post">
             <input type="hidden" name="mac" value="$(mac)">
             <input type="hidden" name="ip" value="$(ip)">
             <input type="hidden" name="username" value="$(username)">

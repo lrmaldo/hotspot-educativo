@@ -17,8 +17,10 @@ Route::view('dashboard', 'dashboard')
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
 
-// Ruta pública para el hotspot (página de trivia / login)
-Route::get('/hotspot', HotspotController::class)->name('hotspot.trivia');
+// Rutas públicas del hotspot
+Route::get('/hotspot', [HotspotController::class, 'show'])->name('hotspot.trivia');
+Route::post('/hotspot', [HotspotController::class, 'show'])->name('hotspot.trivia.post'); // Para recibir parámetros de MikroTik
+Route::post('/hotspot/connect', [HotspotController::class, 'connect'])->name('hotspot.connect');
 // Ruta de vista previa (solo autenticados para evitar uso externo). También se puede usar /hotspot?preview=1
 Route::middleware(['auth'])->get('/hotspot/preview', function(){
     return redirect()->route('hotspot.trivia', ['preview' => 1]);
