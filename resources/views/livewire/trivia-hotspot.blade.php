@@ -211,7 +211,19 @@
                                     </div>
 
                                     <script>
-                                    (function() {
+                                    // Esperar a que el DOM esté listo
+                                    document.addEventListener('DOMContentLoaded', function() {
+                                        initializeCountdown();
+                                    });
+
+                                    // Si ya está cargado, ejecutar inmediatamente
+                                    if (document.readyState === 'loading') {
+                                        document.addEventListener('DOMContentLoaded', initializeCountdown);
+                                    } else {
+                                        initializeCountdown();
+                                    }
+
+                                    function initializeCountdown() {
                                         let countdown = 5;
                                         let autoConnect = true;
                                         let timer;
@@ -222,7 +234,17 @@
                                             const progressEl = document.getElementById('progress-fill');
                                             const progressBar = document.getElementById('progress-bar');
 
-                                            if (countdownEl) countdownEl.textContent = countdown;
+                                            console.log('Countdown:', countdown, 'Elements found:', {
+                                                countdown: !!countdownEl,
+                                                message: !!messageEl,
+                                                progress: !!progressEl,
+                                                progressBar: !!progressBar
+                                            });
+
+                                            if (countdownEl) {
+                                                countdownEl.textContent = countdown;
+                                            }
+
                                             if (progressEl) {
                                                 const progressPercent = ((5 - countdown) / 5) * 100;
                                                 progressEl.style.width = progressPercent + '%';
@@ -234,28 +256,44 @@
                                                 clearInterval(timer);
                                                 if (progressBar) progressBar.style.display = 'none';
                                                 if (autoConnect) {
-                                                    if (messageEl) messageEl.innerHTML = 'Conectando automáticamente...';
-                                                    document.forms.login.submit();
+                                                    if (messageEl) {
+                                                        messageEl.innerHTML = 'Conectando automáticamente...';
+                                                    }
+                                                    // Dar un pequeño delay para mostrar el mensaje
+                                                    setTimeout(function() {
+                                                        if (document.forms.login) {
+                                                            document.forms.login.submit();
+                                                        }
+                                                    }, 500);
                                                 } else {
-                                                    if (messageEl) messageEl.innerHTML = 'Conexión automática cancelada. Haz clic en "Conectar" para acceder manualmente.';
+                                                    if (messageEl) {
+                                                        messageEl.innerHTML = 'Conexión automática cancelada. Haz clic en "Conectar" para acceder manualmente.';
+                                                    }
                                                 }
                                             }
                                         }
 
-                                        // Iniciar countdown
-                                        timer = setInterval(updateCountdown, 1000);
+                                        // Iniciar countdown después de un breve delay
+                                        setTimeout(function() {
+                                            timer = setInterval(updateCountdown, 1000);
+                                            // Ejecutar una vez inmediatamente para mostrar el estado inicial
+                                            updateCountdown();
+                                        }, 100);
 
                                         // Función global para cancelar
                                         window.cancelAutoConnect = function() {
+                                            console.log('Cancelando auto-connect');
                                             autoConnect = false;
                                             countdown = -1;
                                             clearInterval(timer);
                                             const messageEl = document.getElementById('connection-message');
                                             const progressBar = document.getElementById('progress-bar');
                                             if (progressBar) progressBar.style.display = 'none';
-                                            if (messageEl) messageEl.innerHTML = 'Conexión automática cancelada. Haz clic en "Conectar" para acceder manualmente.';
+                                            if (messageEl) {
+                                                messageEl.innerHTML = 'Conexión automática cancelada. Haz clic en "Conectar" para acceder manualmente.';
+                                            }
                                         };
-                                    })();
+                                    }
 
                                     function doLogin() {
                                         try {
