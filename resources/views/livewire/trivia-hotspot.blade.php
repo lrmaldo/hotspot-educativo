@@ -155,29 +155,14 @@
                                     </div>
                                 </div>
                                 @if(!$preview && (!isset($attempt->offline) || !$attempt->offline))
-                                    <div class="space-y-4" id="hotspot-login" x-data="{ countdown: 5, autoConnect: true }" x-init="
-                                        let timer = setInterval(() => {
-                                            countdown--;
-                                            if (countdown <= 0) {
-                                                clearInterval(timer);
-                                                if (autoConnect) {
-                                                    document.forms.login.submit();
-                                                }
-                                            }
-                                        }, 1000);
-                                    ">
+                                    <div class="space-y-4" id="hotspot-login">
                                         <div class="p-4 rounded-xl bg-gradient-to-r from-indigo-50 to-sky-50 dark:from-indigo-900/20 dark:to-sky-900/20 border border-indigo-200 dark:border-indigo-700">
                                             <h3 class="font-semibold text-indigo-900 dark:text-indigo-100 mb-3">🌐 Conectar al Hotspot</h3>
-                                            <p class="text-sm text-indigo-700 dark:text-indigo-300 mb-4">
-                                                <span x-show="countdown > 0">
-                                                    Conexión automática en <span x-text="countdown" class="font-bold text-indigo-600 dark:text-indigo-400"></span> segundos...
-                                                </span>
-                                                <span x-show="countdown <= 0">
-                                                    O haz clic en "Conectar" para acceder manualmente:
-                                                </span>
+                                            <p class="text-sm text-indigo-700 dark:text-indigo-300 mb-4" id="connection-message">
+                                                Conexión automática en <span id="countdown" class="font-bold text-indigo-600 dark:text-indigo-400">5</span> segundos...
                                             </p>
 
-                                            <form name="login" action="{{$mikrotik['link-login-only'] ?? $mikrotik['link-login'] ?? '#'}}" method="post" onSubmit="return doLogin()" target="_blank" class="space-y-3">
+                                            <form name="login" action="{{$mikrotik['link-login-only'] ?? $mikrotik['link-login'] ?? '#'}}" method="post" onSubmit="return doLogin()"  class="space-y-3">
                                                 <input type="hidden" name="dst" value="{{$mikrotik['link-orig'] ?? ''}}" />
                                                 <input type="hidden" name="popup" value="true" />
 
@@ -199,7 +184,7 @@
                                                         </svg>
                                                         Conectar al Internet
                                                     </button>
-                                                    <button type="button" @click="autoConnect = false; countdown = 0" class="px-4 py-2.5 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-700 transition-all duration-200">
+                                                    <button type="button" onclick="cancelAutoConnect()" class="px-4 py-2.5 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-700 transition-all duration-200">
                                                         Cancelar
                                                     </button>
                                                 </div>
@@ -211,10 +196,9 @@
                                             </form>
 
                                             <!-- Barra de progreso visual -->
-                                            <div x-show="countdown > 0" class="mt-3">
+                                            <div id="progress-bar" class="mt-3">
                                                 <div class="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2">
-                                                    <div class="bg-gradient-to-r from-indigo-500 to-sky-500 h-2 rounded-full transition-all duration-1000"
-                                                         :style="'width: ' + ((5 - countdown) / 5 * 100) + '%'"></div>
+                                                    <div id="progress-fill" class="bg-gradient-to-r from-indigo-500 to-sky-500 h-2 rounded-full transition-all duration-1000" style="width: 0%"></div>
                                                 </div>
                                             </div>
                                         </div>
@@ -222,11 +206,57 @@
                                             <svg class="w-4 h-4 animate-pulse" fill="currentColor" viewBox="0 0 24 24">
                                                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                                             </svg>
-                                            Conectando... se abrió una nueva ventana
+                                            Conectando... redirigiendo al portal
                                         </div>
                                     </div>
 
                                     <script>
+                                    (function() {
+                                        let countdown = 5;
+                                        let autoConnect = true;
+                                        let timer;
+
+                                        function updateCountdown() {
+                                            const countdownEl = document.getElementById('countdown');
+                                            const messageEl = document.getElementById('connection-message');
+                                            const progressEl = document.getElementById('progress-fill');
+                                            const progressBar = document.getElementById('progress-bar');
+
+                                            if (countdownEl) countdownEl.textContent = countdown;
+                                            if (progressEl) {
+                                                const progressPercent = ((5 - countdown) / 5) * 100;
+                                                progressEl.style.width = progressPercent + '%';
+                                            }
+
+                                            countdown--;
+
+                                            if (countdown < 0) {
+                                                clearInterval(timer);
+                                                if (progressBar) progressBar.style.display = 'none';
+                                                if (autoConnect) {
+                                                    if (messageEl) messageEl.innerHTML = 'Conectando automáticamente...';
+                                                    document.forms.login.submit();
+                                                } else {
+                                                    if (messageEl) messageEl.innerHTML = 'Conexión automática cancelada. Haz clic en "Conectar" para acceder manualmente.';
+                                                }
+                                            }
+                                        }
+
+                                        // Iniciar countdown
+                                        timer = setInterval(updateCountdown, 1000);
+
+                                        // Función global para cancelar
+                                        window.cancelAutoConnect = function() {
+                                            autoConnect = false;
+                                            countdown = -1;
+                                            clearInterval(timer);
+                                            const messageEl = document.getElementById('connection-message');
+                                            const progressBar = document.getElementById('progress-bar');
+                                            if (progressBar) progressBar.style.display = 'none';
+                                            if (messageEl) messageEl.innerHTML = 'Conexión automática cancelada. Haz clic en "Conectar" para acceder manualmente.';
+                                        };
+                                    })();
+
                                     function doLogin() {
                                         try {
                                             const status = document.getElementById('connecting-status');
