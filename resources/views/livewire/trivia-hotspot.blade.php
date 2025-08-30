@@ -155,12 +155,29 @@
                                     </div>
                                 </div>
                                 @if(!$preview && (!isset($attempt->offline) || !$attempt->offline))
-                                    <div class="space-y-4" id="hotspot-login">
+                                    <div class="space-y-4" id="hotspot-login" x-data="{ countdown: 5, autoConnect: true }" x-init="
+                                        let timer = setInterval(() => {
+                                            countdown--;
+                                            if (countdown <= 0) {
+                                                clearInterval(timer);
+                                                if (autoConnect) {
+                                                    document.forms.login.submit();
+                                                }
+                                            }
+                                        }, 1000);
+                                    ">
                                         <div class="p-4 rounded-xl bg-gradient-to-r from-indigo-50 to-sky-50 dark:from-indigo-900/20 dark:to-sky-900/20 border border-indigo-200 dark:border-indigo-700">
                                             <h3 class="font-semibold text-indigo-900 dark:text-indigo-100 mb-3">🌐 Conectar al Hotspot</h3>
-                                            <p class="text-sm text-indigo-700 dark:text-indigo-300 mb-4">Haz clic en "Conectar" para acceder a Internet con tus credenciales:</p>
+                                            <p class="text-sm text-indigo-700 dark:text-indigo-300 mb-4">
+                                                <span x-show="countdown > 0">
+                                                    Conexión automática en <span x-text="countdown" class="font-bold text-indigo-600 dark:text-indigo-400"></span> segundos...
+                                                </span>
+                                                <span x-show="countdown <= 0">
+                                                    O haz clic en "Conectar" para acceder manualmente:
+                                                </span>
+                                            </p>
 
-                                            <form name="login" action="{{$mikrotik['link-login-only'] ?? $mikrotik['link-login'] ?? '#'}}" method="post" onSubmit="return doLogin()"  class="space-y-3">
+                                            <form name="login" action="{{$mikrotik['link-login-only'] ?? $mikrotik['link-login'] ?? '#'}}" method="post" onSubmit="return doLogin()" target="_blank" class="space-y-3">
                                                 <input type="hidden" name="dst" value="{{$mikrotik['link-orig'] ?? ''}}" />
                                                 <input type="hidden" name="popup" value="true" />
 
@@ -175,18 +192,31 @@
                                                     </div>
                                                 </div>
 
-                                                <button type="submit" class="w-full px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-sky-600 text-white font-semibold rounded-lg hover:from-indigo-500 hover:to-sky-500 transition-all duration-200 flex items-center justify-center gap-2">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                                                    </svg>
-                                                    Conectar al Internet
-                                                </button>
+                                                <div class="flex gap-3">
+                                                    <button type="submit" class="flex-1 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-sky-600 text-white font-semibold rounded-lg hover:from-indigo-500 hover:to-sky-500 transition-all duration-200 flex items-center justify-center gap-2">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                                        </svg>
+                                                        Conectar al Internet
+                                                    </button>
+                                                    <button type="button" @click="autoConnect = false; countdown = 0" class="px-4 py-2.5 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-700 transition-all duration-200">
+                                                        Cancelar
+                                                    </button>
+                                                </div>
 
                                                 <!-- Mostrar errores si los hay -->
                                                 @if(!empty($mikrotik['error']))
                                                     <div class="text-red-600 text-xs font-medium mt-2">{{$mikrotik['error']}}</div>
                                                 @endif
                                             </form>
+
+                                            <!-- Barra de progreso visual -->
+                                            <div x-show="countdown > 0" class="mt-3">
+                                                <div class="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2">
+                                                    <div class="bg-gradient-to-r from-indigo-500 to-sky-500 h-2 rounded-full transition-all duration-1000"
+                                                         :style="'width: ' + ((5 - countdown) / 5 * 100) + '%'"></div>
+                                                </div>
+                                            </div>
                                         </div>
                                         <div id="connecting-status" style="display:none" class="text-sm text-indigo-600 dark:text-indigo-400 flex items-center gap-2">
                                             <svg class="w-4 h-4 animate-pulse" fill="currentColor" viewBox="0 0 24 24">
