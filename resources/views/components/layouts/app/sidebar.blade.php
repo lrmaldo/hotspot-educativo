@@ -17,6 +17,7 @@
                     <flux:navlist.item icon="chart-pie" :href="route('admin.hotspot')" :current="request()->routeIs('admin.hotspot')" wire:navigate>Hotspot</flux:navlist.item>
                     <flux:navlist.item icon="square-2-stack" :href="route('admin.trivias')" :current="request()->routeIs('admin.trivias')" wire:navigate>Trivias</flux:navlist.item>
                     <flux:navlist.item icon="server" :href="route('admin.routers')" :current="request()->routeIs('admin.routers')" wire:navigate>Routers</flux:navlist.item>
+                    <flux:navlist.item icon="users" :href="route('admin.users')" :current="request()->routeIs('admin.users')" wire:navigate>Usuarios</flux:navlist.item>
                 </flux:navlist.group>
             </flux:navlist>
 

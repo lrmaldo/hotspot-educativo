@@ -1,12 +1,11 @@
 <?php
 
-use App\Livewire\Settings\Appearance;
-use App\Livewire\Settings\Password;
-use App\Livewire\Settings\Profile;
-use App\Livewire\TriviaHotspot;
 use App\Http\Controllers\HotspotController;
 use App\Livewire\Admin\HotspotStats;
 use App\Livewire\Admin\TriviasManager;
+use App\Livewire\Settings\Appearance;
+use App\Livewire\Settings\Password;
+use App\Livewire\Settings\Profile;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -22,7 +21,7 @@ Route::get('/hotspot', [HotspotController::class, 'show'])->name('hotspot.trivia
 Route::post('/hotspot', [HotspotController::class, 'show'])->name('hotspot.trivia.post'); // Para recibir parámetros de MikroTik
 Route::post('/hotspot/connect', [HotspotController::class, 'connect'])->name('hotspot.connect');
 // Ruta de vista previa (solo autenticados para evitar uso externo). También se puede usar /hotspot?preview=1
-Route::middleware(['auth'])->get('/hotspot/preview', function(){
+Route::middleware(['auth'])->get('/hotspot/preview', function () {
     return redirect()->route('hotspot.trivia', ['preview' => 1]);
 })->name('hotspot.preview');
 
@@ -38,6 +37,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('admin/routers', \App\Livewire\Admin\RoutersManager::class)->name('admin.routers');
     Route::get('admin/routers/{router}/login-template', \App\Http\Controllers\RouterLoginTemplateController::class)->name('admin.routers.template');
     Route::get('admin/trivias', TriviasManager::class)->name('admin.trivias');
+    Route::get('admin/users', \App\Livewire\Admin\UsersManager::class)->name('admin.users');
 });
 
 require __DIR__.'/auth.php';
