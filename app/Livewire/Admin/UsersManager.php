@@ -99,7 +99,7 @@ class UsersManager extends Component
         }
     }
 
-    protected function resetForm(): void
+    public function resetForm(): void
     {
         $this->reset(['editingId', 'name', 'email', 'password']);
         $this->resetErrorBag();
